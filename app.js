@@ -6,22 +6,23 @@ const cron = require('node-cron');
 ( async ()=> {
 
     // Initialize
-    await db.run(`CREATE TABLE IF NOT EXISTS targetsRetweets(
+    await Promise.all([
+        db.run(`CREATE TABLE IF NOT EXISTS targetsRetweets(
             origTweetId TEXT PRIMARY KEY,
             tweetAuthor TEXT,
             date TEXT
-    )`);
-    await db.run(
-        `CREATE TABLE IF NOT EXISTS followings(
+        )`),
+        db.run(`CREATE TABLE IF NOT EXISTS followings(
+                userId TEXT
+        )`),
+        db.run(`CREATE TABLE IF NOT EXISTS followers(
             userId TEXT
-    )`);
-    await db.run(
-        `CREATE TABLE IF NOT EXISTS followers(
-            userId TEXT
-    )`);
+        )`)
+    ]);
 
     // FollowBack
     cron.schedule('0 0,10,20,30,40,50 * * * *', async ()=> {
+        console.log('synced ff')
         const followers = ( await twitter.client.get('followers/ids', {
             screen_name: conf.botsScreenName,
             stringify_ids: true

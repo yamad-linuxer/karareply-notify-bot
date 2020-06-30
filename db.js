@@ -3,14 +3,20 @@ const conf = require('./config.json');
 
 const db = new sqlite3.Database(conf.db.schema);
 
-module.exports.get = async (sql, params)=> {
-    db.get(sql, params, (err, row)=> {
-        return err ? Promise.reject(err) : Promise.resolve(row);
+module.exports.get =(sql,params)=> {
+    return new Promise((resolve, reject)=> {
+        db.all(sql, params, (err, row)=> {
+            if (err) reject(err);
+            resolve(row);
+        });
     });
 };
 
-module.exports.run = async (sql, params)=> {
-    db.run(sql, params, (err)=> {
-        return err ? Promise.reject(err) : Promise.resolve('OK!');
+module.exports.run =(sql, params)=> {
+    return new Promise((resolve, reject)=> {
+        db.run(sql, params, (err)=> {
+            if (err) reject(err);
+            resolve("OK!");
+        });
     });
 };
