@@ -13,20 +13,27 @@ const cron = require('node-cron');
             date TEXT
         )`),
         db.run(`CREATE TABLE IF NOT EXISTS followings(
-                userId TEXT
+            userId TEXT PRIMARY KEY
         )`),
         db.run(`CREATE TABLE IF NOT EXISTS followers(
-            userId TEXT
+            userId TEXT PRIMARY KEY
         )`)
     ]);
 
     // FollowBack
     cron.schedule('0 0,10,20,30,40,50 * * * *', async ()=> {
         try {
+            const followings = ( await twitter.client.get('friends/ids', {
+                screen_name: conf.botsScreenName,
+                stringify_ids: true
+            })).ids;
             const followers = ( await twitter.client.get('followers/ids', {
                 screen_name: conf.botsScreenName,
                 stringify_ids: true
             })).ids;
+            for (const i of followings) {
+                await db.run(`INSERT INTO followings VALUES (?)`, i);
+            };
             for (const i of followers) {
                 await db.run(`INSERT INTO followers VALUES (?)`, i);
             };
