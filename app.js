@@ -23,20 +23,35 @@ const cron = require('node-cron');
     // FollowBack
     cron.schedule('0 0,10,20,30,40,50 * * * *', async ()=> {
         try {
-            const followings = ( await twitter.client.get('friends/ids', {
+
+            // Download new data.
+            const newFollowers = ( await twitter.client.get('followers/ids', {
                 screen_name: conf.botsScreenName,
                 stringify_ids: true
             })).ids;
-            const followers = ( await twitter.client.get('followers/ids', {
+            const newFollowings = ( await twitter.client.get('friends/ids', {
                 screen_name: conf.botsScreenName,
                 stringify_ids: true
             })).ids;
-            for (const i of followings) {
-                await db.run(`INSERT INTO followings VALUES (?)`, i);
+
+            const currentFollowers = ( await db.get(`SELECT userId FROM followers`)).map(i => i.userId);
+
+            // リムられてたらこっちもリムる
+            const toRemoveFollow = currentFollowers.filter(i => ! newFollowers.includes(i));
+            for (const i of toRemoveFollow) {
+                await db.run(`DELETE FROM followers WHERE userId=(?)`, i);
+                await db.run(`DELETE FROM followings WHERE userId=(?)`, i);
+                await twitter.client.post('friendships/destroy', { user_id: i });
             };
-            for (const i of followers) {
+
+            // Followings
+            const toAddFollow = newFollowers.filter(i => ! currentFollowers.includes(i));
+            for (const i of toAddFollow) {
                 await db.run(`INSERT INTO followers VALUES (?)`, i);
+                await db.run(`INSERT INTO followings VALUES (?)`, i);
+                await twitter.client.post('friendships/create', { user_id: i });
             };
+
             console.log('FF同期完了');
         } catch(err) {
             console.error(err);
