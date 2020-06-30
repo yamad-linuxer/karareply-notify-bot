@@ -42,7 +42,7 @@ const cron = require('node-cron');
                 try {
                     await db.run(`DELETE FROM followers WHERE userId=(?)`, i);
                     await db.run(`DELETE FROM followings WHERE userId=(?)`, i);
-                    await twitter.client.post('friendships/destroy', { user_id: i });
+                    await twitter.removeFriend(i);
                 } catch(err) {
                     console.error(err);
                 };
@@ -54,12 +54,15 @@ const cron = require('node-cron');
                 try {
                     await db.run(`INSERT INTO followers VALUES (?)`, i);
                     await db.run(`INSERT INTO followings VALUES (?)`, i);
-                    await twitter.client.post('friendships/create', { user_id: i });
+                    await twitter.addFriend(i);
                 } catch(err) {
                     console.log(err);
                 };
             };
 
+            console.log(await db.get(`SELECT userId FROM followings`))
+            console.log("currentFollowers:"+currentFollowers)
+            console.log("newFollowers:"+newFollowers)
             console.log('FF同期完了');
         } catch(err) {
             console.error(err);
