@@ -3,6 +3,8 @@ const db = require('./db.js');
 const conf = require('./config.json');
 const cron = require('node-cron');
 
+const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+text);
+
 ( async ()=> {
 
     // Initialize
@@ -56,14 +58,11 @@ const cron = require('node-cron');
                     await db.run(`INSERT INTO followings VALUES (?)`, i);
                     await twitter.addFriend(i);
                 } catch(err) {
-                    console.log(err);
+                    console.err(err);
                 };
             };
 
-            console.log(await db.get(`SELECT userId FROM followings`))
-            console.log("currentFollowers:"+currentFollowers)
-            console.log("newFollowers:"+newFollowers)
-            console.log('FF同期完了');
+            putLog('FF同期完了');
         } catch(err) {
             console.error(err);
         };
@@ -75,7 +74,7 @@ const cron = require('node-cron');
     }, (stream)=> {
         stream.on('data', async (data)=> {
             if (data.user.id_str != conf.twitter.targetUserId) return;
-            console.log('ツイート観測 : '+data.text);
+            putLog('ツイート観測 : '+data.text);
 
             if (data.retweeted_status) {
                 // if the tweet was retweet.
@@ -85,11 +84,10 @@ const cron = require('node-cron');
                 ) {
                     try {
                         await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
-                            data.retweeted_status.id_str,
                             data.retweeted_status.user.screen_name,
                             new Date()
                         ]);
-                        console.log('ターゲットによるフォロー中の人のツイートのRTを観測');
+                        putLog('ターゲットによるフォロー中の人のツイートのRTを観測');
                     } catch(err) {
                         console.error(err);
                     };
@@ -107,16 +105,18 @@ const cron = require('node-cron');
                     for (const i of RTsInDb) {
                         const SN = i.tweetAuthor;
                         const tID = i.origTweetId;
+
+
                         try {
                             await twitter.reply(`空リプらしきものを観測 https://twitter.com/i/status/${data.id_str}`, SN, tID);
                             await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = ?`, i.origTweetId);
-                            console.log('空リプを観測');
+                            putLog('空リプを観測');
                         } catch(err) {
                             console.error(err)
                         };
                     };
                 } catch(err) {
-                    console.log(err);
+                    console.error(err);
                 };
             };
         });
