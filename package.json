@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/yamad-linuxer/karareply-notify-bot#readme",
   "dependencies": {
+    "node-cron": "^2.0.3",
     "sqlite3": "^4.2.0",
     "twitter": "^1.7.1"
   }

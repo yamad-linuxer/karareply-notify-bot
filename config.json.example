@@ -1,0 +1,13 @@
+{
+    "twitter": {
+        "ck": "XXXXXXXXXXXXXXXX",
+        "cs": "XXXXXXXXXXXXXXXX",
+        "atk": "XXXXXXXXXXXXXXXX",
+        "ats": "XXXXXXXXXXXXXXXX",
+        "targetUserId": "XXXXXXXXXXXXXXXX",
+        "botsScreenName": "hogefuga114514"
+    },
+    "db": {
+        "schema": "./hogehoge.db"
+    }
+}
