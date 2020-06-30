@@ -39,17 +39,25 @@ const cron = require('node-cron');
             // リムられてたらこっちもリムる
             const toRemoveFollow = currentFollowers.filter(i => ! newFollowers.includes(i));
             for (const i of toRemoveFollow) {
-                await db.run(`DELETE FROM followers WHERE userId=(?)`, i);
-                await db.run(`DELETE FROM followings WHERE userId=(?)`, i);
-                await twitter.client.post('friendships/destroy', { user_id: i });
+                try {
+                    await db.run(`DELETE FROM followers WHERE userId=(?)`, i);
+                    await db.run(`DELETE FROM followings WHERE userId=(?)`, i);
+                    await twitter.client.post('friendships/destroy', { user_id: i });
+                } catch(err) {
+                    console.error(err);
+                };
             };
 
             // Followings
             const toAddFollow = newFollowers.filter(i => ! currentFollowers.includes(i));
             for (const i of toAddFollow) {
-                await db.run(`INSERT INTO followers VALUES (?)`, i);
-                await db.run(`INSERT INTO followings VALUES (?)`, i);
-                await twitter.client.post('friendships/create', { user_id: i });
+                try {
+                    await db.run(`INSERT INTO followers VALUES (?)`, i);
+                    await db.run(`INSERT INTO followings VALUES (?)`, i);
+                    await twitter.client.post('friendships/create', { user_id: i });
+                } catch(err) {
+                    console.log(err);
+                };
             };
 
             console.log('FF同期完了');
@@ -67,16 +75,21 @@ const cron = require('node-cron');
             console.log('ツイート観測 : '+data.text);
 
             if (data.retweeted_status) {
-                // if the tweet was retweet, put into database.
-                try {
-                    await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
-                        data.retweeted_status.id_str,
-                        data.retweeted_status.user.screen_name,
-                        new Date()
-                    ]);
-                    console.log('ターゲットによるRTを観測');
-                } catch(err) {
-                    console.error(err);
+                // if the tweet was retweet.
+                if (
+                    ( await db.get(`SELECT userId FROM followings`)).map(i => i.userId)
+                        .includes(data.retweeted_status.user.id_str)
+                ) {
+                    try {
+                        await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
+                            data.retweeted_status.id_str,
+                            data.retweeted_status.user.screen_name,
+                            new Date()
+                        ]);
+                        console.log('ターゲットによるフォロー中の人のツイートのRTを観測');
+                    } catch(err) {
+                        console.error(err);
+                    };
                 };
                 return;
             };
