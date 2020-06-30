@@ -1,0 +1,23 @@
+{
+  "name": "karareply-notify-bot",
+  "version": "1.0.0",
+  "description": "空リプ常習犯への対策",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yamad-linuxer/karareply-notify-bot.git"
+  },
+  "author": "YamaD",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/yamad-linuxer/karareply-notify-bot/issues"
+  },
+  "homepage": "https://github.com/yamad-linuxer/karareply-notify-bot#readme",
+  "dependencies": {
+    "sqlite3": "^4.2.0",
+    "twitter": "^1.7.1"
+  }
+}
