@@ -12,7 +12,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
         db.run(`CREATE TABLE IF NOT EXISTS targetsRetweets(
             origTweetId TEXT PRIMARY KEY,
             tweetAuthor TEXT,
-            date TEXT
+            utcSec INTEGER
         )`),
         db.run(`CREATE TABLE IF NOT EXISTS followings(
             userId TEXT PRIMARY KEY
@@ -58,7 +58,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                     await db.run(`INSERT INTO followings VALUES (?)`, i);
                     await twitter.addFriend(i);
                 } catch(err) {
-                    console.err(err);
+                    console.error(err);
                 };
             };
 
@@ -84,8 +84,9 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                 ) {
                     try {
                         await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
+                            data.retweeted_status.id_str,
                             data.retweeted_status.user.screen_name,
-                            new Date()
+                            Math.round(new Date().getTime() / 1000)
                         ]);
                         putLog('ターゲットによるフォロー中の人のツイートのRTを観測');
                     } catch(err) {
@@ -97,19 +98,21 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
 
             // if the tweet was not retweet, and less duaration.
             const RTsInDb = await db.get(`SELECT * FROM targetsRetweets`);
-            if (
-                RTsInDb.length >= 1 &&
-                true
-            ) {
+            if (RTsInDb.length >= 1) {
                 try {
                     for (const i of RTsInDb) {
                         const SN = i.tweetAuthor;
                         const tID = i.origTweetId;
+                        const tDt = i.utcSec;
+                        const nDt = Math.round(new Date().getTime() / 1000);
 
+                        // after 100secs, the RT will be ignored.
+                        if (nDt-tDt > 100) continue;
 
                         try {
-                            await twitter.reply(`空リプらしきものを観測 https://twitter.com/i/status/${data.id_str}`, SN, tID);
-                            await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = ?`, i.origTweetId);
+                            await twitter.reply(`このツイートがRTされた${(nDt-tDt)}秒後に、空リプらしきものを観測しました。 https://twitter.com/${conf.twitter.targetUserSN}/status/${data.id_str}`, SN, tID);
+                            await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
+                            // await db.run(`DELETE FROM targetsRetweets`);
                             putLog('空リプを観測');
                         } catch(err) {
                             console.error(err)
