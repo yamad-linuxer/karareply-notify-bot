@@ -117,8 +117,11 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         const tDt = i.utcSec;
                         const nDt = Math.round(new Date().getTime() / 1000);
 
-                        // after 100secs, the RT will be ignored.
-                        if (nDt-tDt > 100) continue;
+                        // after 300secs, the RT will be ignored.
+                        if (nDt-tDt > 300) {
+                            await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
+                            continue;
+                        };
 
                         try {
                             await twitter.reply(`このツイートがRTされた${(nDt-tDt)}秒後に、空リプらしきものを観測しました。 https://twitter.com/${targetUser.screen_name}/status/${data.id_str}`, SN, tID);
