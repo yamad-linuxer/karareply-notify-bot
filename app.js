@@ -34,7 +34,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
     ]);
 
     // FollowBack
-    cron.schedule('0 0,10,20,30,40,50 * * * *', async ()=> {
+    cron.schedule('*/10 * * * *', async ()=> {
         try {
 
             // Download new data.
