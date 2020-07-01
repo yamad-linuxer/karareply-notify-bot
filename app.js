@@ -7,6 +7,17 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
 
 ( async ()=> {
 
+    // target of observ
+    let targetUser;
+    try {
+        targetUser = ( await twitter.client.get('users/search', {
+            q: conf.twitter.targetUser
+        }))[0];
+    } catch(err) {
+        console.error(err);
+        return;
+    };
+
     // Initialize
     await Promise.all([
         db.run(`CREATE TABLE IF NOT EXISTS targetsRetweets(
@@ -70,10 +81,10 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
 
     // get target's tweets
     twitter.client.stream('statuses/filter', {
-        follow: conf.twitter.targetUserId
+        follow: targetUser.id_str
     }, (stream)=> {
         stream.on('data', async (data)=> {
-            if (data.user.id_str != conf.twitter.targetUserId) return;
+            if (data.user.id_str != targetUser.id_str) return;
             putLog('ツイート観測 : '+data.text);
 
             if (data.retweeted_status) {
@@ -110,7 +121,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         if (nDt-tDt > 100) continue;
 
                         try {
-                            await twitter.reply(`このツイートがRTされた${(nDt-tDt)}秒後に、空リプらしきものを観測しました。 https://twitter.com/${conf.twitter.targetUserSN}/status/${data.id_str}`, SN, tID);
+                            await twitter.reply(`このツイートがRTされた${(nDt-tDt)}秒後に、空リプらしきものを観測しました。 https://twitter.com/${targetUser.screen_name}/status/${data.id_str}`, SN, tID);
                             await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
                             // await db.run(`DELETE FROM targetsRetweets`);
                             putLog('空リプを観測');
