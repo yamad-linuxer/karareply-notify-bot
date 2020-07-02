@@ -36,7 +36,6 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
     // FollowBack
     cron.schedule('*/10 * * * *', async ()=> {
         try {
-
             // Download new data.
             const newFollowers = ( await twitter.client.get('followers/ids', {
                 screen_name: conf.botsScreenName,
@@ -46,28 +45,26 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                 screen_name: conf.botsScreenName,
                 stringify_ids: true
             })).ids;
-
             const currentFollowers = ( await db.get(`SELECT userId FROM followers`)).map(i => i.userId);
 
             // リムられてたらこっちもリムる
             const toRemoveFollow = currentFollowers.filter(i => ! newFollowers.includes(i));
             for (const i of toRemoveFollow) {
                 try {
+                    await twitter.removeFriend(i);
                     await db.run(`DELETE FROM followers WHERE userId=(?)`, i);
                     await db.run(`DELETE FROM followings WHERE userId=(?)`, i);
-                    await twitter.removeFriend(i);
                 } catch(err) {
                     console.error(err);
                 };
             };
-
             // Followings
             const toAddFollow = newFollowers.filter(i => ! currentFollowers.includes(i));
             for (const i of toAddFollow) {
                 try {
+                    await twitter.addFriend(i);
                     await db.run(`INSERT INTO followers VALUES (?)`, i);
                     await db.run(`INSERT INTO followings VALUES (?)`, i);
-                    await twitter.addFriend(i);
                 } catch(err) {
                     console.error(err);
                 };
@@ -97,7 +94,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
                             data.retweeted_status.id_str,
                             data.retweeted_status.user.screen_name,
-                            Math.round(new Date().getTime() / 1000)
+                            Math.round(new Date().getTime())
                         ]);
                         putLog('ターゲットによるフォロー中の人のツイートのRTを観測');
                     } catch(err) {
@@ -115,16 +112,16 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         const SN = i.tweetAuthor;
                         const tID = i.origTweetId;
                         const tDt = i.utcSec;
-                        const nDt = Math.round(new Date().getTime() / 1000);
+                        const nDt = Math.round(new Date().getTime());
 
                         // after 300secs, the RT will be ignored.
-                        if (nDt-tDt > 300) {
+                        if (nDt-tDt > 300000) {
                             await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
                             continue;
                         };
 
                         try {
-                            await twitter.reply(`このツイートがRTされた${(nDt-tDt)}秒後に、空リプらしきものを観測しました。 https://twitter.com/${targetUser.screen_name}/status/${data.id_str}`, SN, tID);
+                            await twitter.reply(`このツイートがRTされた${(nDt-tDt)/1000}秒後に、空リプらしきものを観測しました。 https://twitter.com/${targetUser.screen_name}/status/${data.id_str}`, SN, tID);
                             await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
                             // await db.run(`DELETE FROM targetsRetweets`);
                             putLog('空リプを観測');
