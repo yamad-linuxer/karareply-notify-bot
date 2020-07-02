@@ -94,7 +94,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         await db.run(`INSERT INTO targetsRetweets VALUES (?, ?, ?)`, [
                             data.retweeted_status.id_str,
                             data.retweeted_status.user.screen_name,
-                            Math.round(new Date().getTime())
+                            data.timestamp_ms
                         ]);
                         putLog('ターゲットによるフォロー中の人のツイートのRTを観測');
                     } catch(err) {
@@ -112,7 +112,7 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         const SN = i.tweetAuthor;
                         const tID = i.origTweetId;
                         const tDt = i.utcSec;
-                        const nDt = Math.round(new Date().getTime());
+                        const nDt = data.timestamp_ms;
 
                         // after 300secs, the RT will be ignored.
                         if (nDt-tDt > 300000) {
@@ -123,7 +123,6 @@ const putLog =(text)=> console.log('[ '+new Date().toLocaleString('ja')+' ] '+te
                         try {
                             await twitter.reply(`このツイートがRTされた${(nDt-tDt)/1000}秒後に、空リプらしきものを観測しました。 https://twitter.com/${targetUser.screen_name}/status/${data.id_str}`, SN, tID);
                             await db.run(`DELETE FROM targetsRetweets WHERE origTweetId = (?)`, i.origTweetId);
-                            // await db.run(`DELETE FROM targetsRetweets`);
                             putLog('空リプを観測');
                         } catch(err) {
                             console.error(err)
